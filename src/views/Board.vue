@@ -1,12 +1,95 @@
 <template>
   <div class="board">
+    <div class="flex flex-row items-start">
+      <div
+        class="column"
+        v-for="(column, $columnIndex) of board.columns"
+        :key="$columnIndex"
+        @drop="moveTask($event, column.tasks)"
+        @dragover.prevent
+        @dragenter.prevent
+      >
+        <div class="flex items-center mb-2 font-bold">
+          {{ column.name }}
+        </div>
+        <div class="list-reset">
+          <div
+            class="task cursor-pointer"
+            v-for="(task, $taskIndex) of column.tasks"
+            :key="$taskIndex"
+            draggable
+            @dragstart="pickupTask($event, $taskIndex, $columnIndex)"
+            @click="goToTask(task)"
+          >
+            <span class="w-full flex-no-shrink font-bold">
+              {{ task.name }}
+            </span>
+            <p
+              v-if="task.description"
+              class="w-full flex-no-shrink text-sm mt-1"
+            >
+              {{ task.description }}
+            </p>
+          </div>
 
+          <input
+            type="text"
+            class="block bg-transparent focus:bg-white focus:border-blue-dark p-2 w-full"
+            placeholder="+ Enter new task"
+            @keyup.enter="createTask($event, column.tasks)"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="task-bg" v-if="isTaskOpen" @click.self="close">
+      <router-view />
+    </div>
   </div>
 </template>
 
 <script>
-export default {
+import { mapState } from 'vuex'
 
+export default {
+  computed: {
+    ...mapState(['board']),
+    isTaskOpen() {
+      return this.$route.name === 'task'
+    }
+  },
+  methods: {
+    goToTask(task) {
+      this.$router.push({ name: 'task', params: { id: task.id } })
+    },
+    close() {
+      this.$router.push({ name: 'board' })
+    },
+    createTask(e, tasks) {
+      this.$store.commit('CREATE_TASK', {
+        tasks,
+        name: e.target.value
+      })
+      e.target.value = ''
+    },
+    pickupTask(e, taskIndex, fromColumnIndex) {
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.dropEffect = 'move'
+
+      e.dataTransfer.setData('task-index', taskIndex)
+      e.dataTransfer.setData('from-column-index', fromColumnIndex)
+    },
+    moveTask(e, toTasks) {
+      const fromColumnIndex = e.dataTransfer.getData('from-column-index')
+      const fromTasks = this.board.columns[fromColumnIndex].tasks
+      const taskIndex = e.dataTransfer.getData('task-index')
+
+      this.$store.commit('MOVE_TASK', {
+        fromTasks,
+        toTasks,
+        taskIndex
+      })
+    }
+  }
 }
 </script>
 
@@ -26,6 +109,6 @@ export default {
 
 .task-bg {
   @apply pin absolute;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
 }
 </style>

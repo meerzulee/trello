@@ -12,7 +12,7 @@ export default {
     }
   },
   computed: {
-    typeClasses () {
+    typeClasses() {
       switch (this.type) {
         case 'danger':
           return 'bg-red'
